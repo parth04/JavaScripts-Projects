@@ -71,13 +71,12 @@ const inputClosePin = document.querySelector('.form__input--pin');
 
 //Displayig all the transactions
 const displayTransaction = function (transactions, sort = false) {
-
   containerMovements.innerHTML = ""
   var d = new Date();
   const todaysDate = d.toDateString()
   labelDate.textContent = `${todaysDate}`
 
-  const movs = sort ? movements.slice().sort((a, b) => a - b) : movements
+  const movs = sort ? transactions.slice().sort((a, b) => a - b) : transactions
 
   movs.forEach((element, i) => {
     const type = element > 0 ? "deposit" : "withdrawal"
@@ -85,7 +84,7 @@ const displayTransaction = function (transactions, sort = false) {
     <div class="movements__row">
     <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
     <!-- <div class="movements__date">${d}</div> -->
-    <div class="movements__value">${element}€</div>
+    <div class="movements__value">$${element}</div>
   </div>`
     containerMovements.insertAdjacentHTML("afterbegin", html)
   });
@@ -96,7 +95,7 @@ const displayTransaction = function (transactions, sort = false) {
 //Calculating the whole balance of account
 const calcPrintBalance = function (acc) {
   acc.balance = acc.movements.reduce((accumaletor, element) => accumaletor + element, 0)
-  labelBalance.textContent = `${acc.balance}€`
+  labelBalance.textContent = `$${acc.balance}`
 }
 // calcPrintBalance(account1.movements)
 
@@ -117,23 +116,23 @@ const calcDisplaySummary = function (acc) {
   const income = acc.movements
     .filter((mov) => mov > 0)
     .reduce((acc, mov) => acc + mov, 0)
-  labelSumIn.textContent = `${income}€`
+  labelSumIn.textContent = `$${income.toFixed(2)}`
 
   const outcome = acc.movements
     .filter((mov) => mov < 0)
     .reduce((acc, mov) => acc + mov, 0)
-  labelSumOut.textContent = `${Math.abs(outcome)}€`
+  labelSumOut.textContent = `${Math.abs(outcome.toFixed(2))}`
 
   const interest = acc.movements
     .filter((mov) => mov > 0)
     .map(deposit => (deposit * acc.interestRate) / 100)
     .filter(interest => interest >= 1)
     .reduce((acc, int) => acc + int, 0)
-  labelSumInterest.textContent = `${interest.toFixed(2)}€`
+  labelSumInterest.textContent = `$${interest.toFixed(2)}`
 }
 
 //Event Hndlers
-let curreentAccount
+let curreentAccount, timer
 btnLogin.addEventListener("click", function (e) {
   e.preventDefault() //Prevent form from submitting
 
@@ -147,6 +146,10 @@ btnLogin.addEventListener("click", function (e) {
 
     //clear the input fields
     inputLoginUsername.value = inputLoginPin.value = ""
+    if (timer) {
+      clearInterval(timer)
+    }
+    // timer = startLogoutTimer()
     updateUI(curreentAccount)
   }
   else {
@@ -159,6 +162,27 @@ const updateUI = function (curreentAccount) {
   calcPrintBalance(curreentAccount)
   displayTransaction(curreentAccount.movements)
   calcDisplaySummary(curreentAccount)
+}
+
+const startLogoutTimer = function () {
+  const tick = function () {
+    const minute = Math.trunc(timer / 60)
+    const sec = timer % 60
+    labelTimer.textContent = `${minute}:${sec}`
+    if (timer === 0) {
+      clearInterval(logOut)
+      labelWelcome.textContent = "Log in to get started"
+      containerApp.style.opacity = 0
+    }
+    timer--
+
+  }
+  let timer = 300
+  tick()
+  const logOut = setInterval(tick, 1000)
+
+  return logOut
+
 }
 
 btnTransfer.addEventListener("click", function (e) {
@@ -205,7 +229,8 @@ btnClose.addEventListener("click", function (e) {
     accounts.splice(idx, 1)
     //clear the input fields
     inputCloseUsername.value = inputClosePin.value = ""
-    console.log(accounts);
+    // console.log(accounts);
+    labelWelcome.textContent = "Log in to get started"
     containerApp.style.opacity = 0
   }
   else {
@@ -217,7 +242,7 @@ btnClose.addEventListener("click", function (e) {
 btnLoan.addEventListener("click", function (e) {
   e.preventDefault()
 
-  const amount = Number(inputLoanAmount.value)
+  const amount = Math.floor(inputLoanAmount.value)
 
   if (amount > 0 && curreentAccount.movements.some(mov => mov >= amount * 0.1)) {
     curreentAccount.movements.push(amount);
